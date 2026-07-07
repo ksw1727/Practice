@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공직자통합메일 - 프로토타입</title>
+<style>
+  :root{
+    --blue:#2f6fed;
+    --blue-dark:#1e4fc4;
+    --blue-light:#eaf1ff;
+    --gray-bg:#f4f5f7;
+    --gray-border:#e2e4e9;
+    --gray-text:#6b7280;
+    --text:#1f2430;
+    --green:#1a9c5c;
+    --green-bg:#e8f8ef;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Malgun Gothic",sans-serif;
+    background:var(--gray-bg);
+    color:var(--text);
+    min-width:1100px;
+  }
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---------- Login ---------- */
+  #view-login.active{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+  }
+  .login-card{
+    width:360px;
+    background:#fff;
+    border:1px solid var(--gray-border);
+    border-radius:16px;
+    padding:40px 36px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.06);
+    text-align:center;
+  }
+  .login-card .brand{
+    font-size:20px;
+    font-weight:700;
+    color:var(--blue-dark);
+    margin-bottom:28px;
+  }
+  .login-card label{
+    display:block;
+    text-align:left;
+    font-size:13px;
+    color:var(--gray-text);
+    margin:14px 0 6px;
+  }
+  .login-card input{
+    width:100%;
+    padding:11px 12px;
+    border:1px solid var(--gray-border);
+    border-radius:10px;
+    font-size:14px;
+    outline:none;
+  }
+  .login-card input:focus{border-color:var(--blue);}
+  .btn{
+    display:inline-block;
+    border:none;
+    border-radius:10px;
+    padding:11px 18px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    background:var(--blue);
+    color:#fff;
+    transition:background .15s;
+  }
+  .btn:hover{background:var(--blue-dark);}
+  .btn.secondary{
+    background:#fff;
+    color:var(--text);
+    border:1px solid var(--gray-border);
+  }
+  .btn.secondary:hover{background:#f2f3f5;}
+  .btn.block{width:100%;margin-top:22px;}
+  .hint{
+    margin-top:14px;
+    font-size:12px;
+    color:var(--gray-text);
+  }
+
+  /* ---------- Shared layout ---------- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:#fff;
+    border-bottom:1px solid var(--gray-border);
+    padding:0 28px;
+    height:60px;
+  }
+  .topbar .left{display:flex;align-items:center;gap:28px;}
+  .topbar .brand{font-weight:700;color:var(--blue-dark);font-size:16px;}
+  .topbar nav{display:flex;gap:18px;}
+  .topbar nav a{
+    font-size:14px;
+    color:var(--gray-text);
+    text-decoration:none;
+    padding:8px 2px;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .topbar nav a.active{color:var(--blue-dark);border-bottom-color:var(--blue);font-weight:600;}
+  .topbar .right{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--gray-text);}
+  .topbar .right .logout{cursor:pointer;color:var(--blue);}
+
+  .page{max-width:900px;margin:32px auto;padding:0 24px;}
+
+  /* ---------- Inbox ---------- */
+  .mail-list{
+    background:#fff;
+    border:1px solid var(--gray-border);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .mail-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:16px 20px;
+    border-bottom:1px solid var(--gray-border);
+    cursor:pointer;
+  }
+  .mail-row:last-child{border-bottom:none;}
+  .mail-row:hover{background:#f7f8fa;}
+  .mail-row .sender{
+    width:150px;
+    flex:0 0 150px;
+    font-size:13px;
+    color:var(--gray-text);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .mail-row .content{flex:1;min-width:0;}
+  .mail-row .subject{
+    font-size:14px;
+    font-weight:600;
+    margin-bottom:3px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .mail-row .preview{
+    font-size:13px;
+    color:var(--gray-text);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .mail-row .date{
+    flex:0 0 70px;
+    text-align:right;
+    font-size:12px;
+    color:var(--gray-text);
+  }
+  .clip{color:var(--blue);font-size:13px;}
+  .page-title{font-size:20px;font-weight:700;margin-bottom:16px;}
+
+  /* ---------- Mail detail ---------- */
+  .back-link{
+    display:inline-block;
+    font-size:13px;
+    color:var(--gray-text);
+    margin-bottom:16px;
+    cursor:pointer;
+  }
+  .back-link:hover{color:var(--blue-dark);}
+  .detail-card{
+    background:#fff;
+    border:1px solid var(--gray-border);
+    border-radius:14px;
+    padding:28px 32px;
+  }
+  .detail-card h2{margin:0 0 12px;font-size:19px;}
+  .meta-line{
+    font-size:13px;
+    color:var(--gray-text);
+    margin-bottom:20px;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--gray-border);
+  }
+  .meta-line span{margin-right:16px;}
+  .mail-body{font-size:14px;line-height:1.7;color:var(--text);margin-bottom:24px;white-space:pre-line;}
+  .attachment-box{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--gray-bg);
+    border:1px solid var(--gray-border);
+    border-radius:12px;
+    padding:14px 18px;
+  }
+  .attachment-box .file-info{display:flex;align-items:center;gap:10px;font-size:14px;}
+  .attachment-box .file-icon{
+    width:34px;height:34px;border-radius:8px;
+    background:var(--blue-light);color:var(--blue-dark);
+    display:flex;align-items:center;justify-content:center;font-size:16px;
+  }
+  .attachment-box .file-name{font-weight:600;}
+  .attachment-box .file-size{color:var(--gray-text);font-size:12px;margin-left:6px;}
+
+  /* ---------- Timeline ---------- */
+  .timeline-card{
+    background:#fff;
+    border:1px solid var(--gray-border);
+    border-radius:14px;
+    padding:32px 36px;
+  }
+  .timeline-card .subject-ref{font-size:13px;color:var(--gray-text);margin-bottom:24px;}
+  .timeline-card .subject-ref b{color:var(--text);}
+  .steps{list-style:none;margin:0;padding:0;}
+  .step{
+    display:flex;
+    gap:16px;
+    padding:0 0 28px;
+    position:relative;
+  }
+  .step:last-child{padding-bottom:0;}
+  .step:not(:last-child)::before{
+    content:"";
+    position:absolute;
+    left:15px;
+    top:32px;
+    width:2px;
+    height:calc(100% - 20px);
+    background:var(--gray-border);
+  }
+  .step-dot{
+    flex:0 0 32px;
+    width:32px;height:32px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;
+    background:#f0f1f3;
+    color:var(--gray-text);
+    border:2px solid var(--gray-border);
+    z-index:1;
+  }
+  .step.done .step-dot{background:var(--green-bg);color:var(--green);border-color:var(--green);}
+  .step.active .step-dot{background:var(--blue-light);color:var(--blue);border-color:var(--blue);}
+  .step-body .step-label{font-size:14px;font-weight:600;margin-top:4px;}
+  .step-body .step-status{font-size:12px;color:var(--gray-text);margin-top:3px;}
+  .step.done .step-body .step-status{color:var(--green);}
+  .step.active .step-body .step-status{color:var(--blue);}
+  .spinner{
+    display:inline-block;
+    width:11px;height:11px;
+    border:2px solid var(--blue-light);
+    border-top-color:var(--blue);
+    border-radius:50%;
+    margin-right:5px;
+    animation:spin 0.7s linear infinite;
+    vertical-align:middle;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .result-banner{
+    margin-top:8px;
+    padding:18px 20px;
+    border-radius:12px;
+    background:var(--green-bg);
+    color:var(--green);
+    font-size:14px;
+    font-weight:600;
+    display:none;
+  }
+  .result-banner.show{display:block;}
+  .timeline-actions{margin-top:20px;display:flex;gap:10px;display:none;}
+  .timeline-actions.show{display:flex;}
+
+  /* ---------- History ---------- */
+  .history-list{
+    background:#fff;
+    border:1px solid var(--gray-border);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .history-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:16px 20px;
+    border-bottom:1px solid var(--gray-border);
+  }
+  .history-row:last-child{border-bottom:none;}
+  .history-row .file-icon{
+    width:36px;height:36px;border-radius:9px;
+    background:var(--blue-light);color:var(--blue-dark);
+    display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 36px;
+  }
+  .history-row .info{flex:1;min-width:0;}
+  .history-row .info .name{font-size:14px;font-weight:600;}
+  .history-row .info .time{font-size:12px;color:var(--gray-text);margin-top:2px;}
+  .badge{
+    font-size:12px;
+    font-weight:600;
+    padding:5px 11px;
+    border-radius:999px;
+    background:var(--green-bg);
+    color:var(--green);
+    flex:0 0 auto;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div class="view active" id="view-login">
+  <div class="login-card">
+    <div class="brand">📧 공직자통합메일</div>
+    <label>사원번호</label>
+    <input type="text" value="20261234" id="loginId">
+    <label>비밀번호</label>
+    <input type="password" value="••••••••" id="loginPw">
+    <button class="btn block" onclick="login()">로그인</button>
+    <div class="hint">(SSO / OTP 통합 인증 적용됨 — 별도 재로그인 없음)</div>
+  </div>
+</div>
+
+<!-- ===================== INBOX ===================== -->
+<div class="view" id="view-inbox">
+  <div class="topbar">
+    <div class="left">
+      <div class="brand">📧 공직자통합메일</div>
+      <nav>
+        <a class="active" onclick="goInbox()">받은메일함</a>
+        <a onclick="goHistory()">전송 이력</a>
+      </nav>
+    </div>
+    <div class="right">
+      <span>홍길동 님</span>
+      <span class="logout" onclick="logout()">로그아웃</span>
+    </div>
+  </div>
+  <div class="page">
+    <div class="page-title">받은메일함</div>
+    <div class="mail-list" id="mailList"></div>
+  </div>
+</div>
+
+<!-- ===================== MAIL DETAIL ===================== -->
+<div class="view" id="view-detail">
+  <div class="topbar">
+    <div class="left">
+      <div class="brand">📧 공직자통합메일</div>
+      <nav>
+        <a onclick="goInbox()">받은메일함</a>
+        <a onclick="goHistory()">전송 이력</a>
+      </nav>
+    </div>
+    <div class="right">
+      <span>홍길동 님</span>
+      <span class="logout" onclick="logout()">로그아웃</span>
+    </div>
+  </div>
+  <div class="page">
+    <div class="back-link" onclick="goInbox()">← 받은메일함</div>
+    <div class="detail-card" id="detailCard"></div>
+  </div>
+</div>
+
+<!-- ===================== TIMELINE ===================== -->
+<div class="view" id="view-timeline">
+  <div class="topbar">
+    <div class="left">
+      <div class="brand">📧 공직자통합메일</div>
+      <nav>
+        <a onclick="goInbox()">받은메일함</a>
+        <a onclick="goHistory()">전송 이력</a>
+      </nav>
+    </div>
+    <div class="right">
+      <span>홍길동 님</span>
+      <span class="logout" onclick="logout()">로그아웃</span>
+    </div>
+  </div>
+  <div class="page">
+    <div class="page-title">내부망 전송 진행 상황</div>
+    <div class="timeline-card">
+      <div class="subject-ref">첨부파일 <b id="tlFileName"></b> 을(를) 내부망으로 전송 중입니다.</div>
+      <ul class="steps" id="steps"></ul>
+      <div class="result-banner" id="resultBanner">✅ 내부망 전송이 완료되었습니다. 담당자 계정에서 확인할 수 있습니다.</div>
+      <div class="timeline-actions" id="timelineActions">
+        <button class="btn secondary" onclick="goInbox()">받은메일함으로</button>
+        <button class="btn" onclick="goHistory()">전송 이력 보기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== HISTORY ===================== -->
+<div class="view" id="view-history">
+  <div class="topbar">
+    <div class="left">
+      <div class="brand">📧 공직자통합메일</div>
+      <nav>
+        <a onclick="goInbox()">받은메일함</a>
+        <a class="active" onclick="goHistory()">전송 이력</a>
+      </nav>
+    </div>
+    <div class="right">
+      <span>홍길동 님</span>
+      <span class="logout" onclick="logout()">로그아웃</span>
+    </div>
+  </div>
+  <div class="page">
+    <div class="page-title">내부망 전송 이력</div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<script>
+/* ---------------- mock data ---------------- */
+const mails = [
+  {
+    id: 1,
+    sender: "external@partner.com",
+    subject: "[보안] 취약점 점검 보고서 검토 요청",
+    preview: "안녕하십니까, 지난주 실시한 정기 보안 취약점 점검 결과를 첨부와 같이 보내드립니다.",
+    date: "09:12",
+    body: "안녕하십니까,\n\n지난주 실시한 정기 보안 취약점 점검 결과를 첨부와 같이 보내드립니다.\n검토 후 내부 담당 부서에 전달 부탁드립니다.\n\n감사합니다.",
+    attachment: { name: "보안_취약점_점검_보고서.pdf", size: "2.4MB", icon: "📄" }
+  },
+  {
+    id: 2,
+    sender: "external@partner.com",
+    subject: "예산 집행 자료 안내",
+    preview: "하반기 예산 집행 관련 안내드립니다. 첨부파일은 없습니다.",
+    date: "08:47",
+    body: "하반기 예산 집행 계획에 대해 안내드립니다.\n세부 내용은 추후 회의를 통해 공유드리겠습니다.",
+    attachment: null
+  },
+  {
+    id: 3,
+    sender: "vendor@company.co.kr",
+    subject: "계약서 검토 부탁드립니다",
+    preview: "협의된 내용을 반영한 계약서 초안을 첨부드립니다. 확인 부탁드립니다.",
+    date: "어제",
+    body: "안녕하세요,\n\n협의된 내용을 반영하여 계약서 초안을 작성하였습니다.\n첨부파일 확인 후 의견 주시면 반영하여 재전달 드리겠습니다.",
+    attachment: { name: "계약서_초안.docx", size: "540KB", icon: "📝" }
+  },
+  {
+    id: 4,
+    sender: "hr@company.co.kr",
+    subject: "3분기 정기 회의 일정 안내",
+    preview: "3분기 부서별 정기 회의 일정을 아래와 같이 안내드립니다.",
+    date: "어제",
+    body: "3분기 부서별 정기 회의 일정을 아래와 같이 안내드립니다.\n일정: 매주 수요일 오후 2시\n장소: 대회의실",
+    attachment: null
+  },
+  {
+    id: 5,
+    sender: "audit@partner.com",
+    subject: "감사 자료 제출 요청",
+    preview: "정기 감사에 필요한 자료 목록을 첨부와 같이 요청드립니다.",
+    date: "2일 전",
+    body: "정기 감사 진행을 위해 아래 첨부된 자료 목록을 확인해 주시기 바랍니다.\n제출 기한: 이번 주 금요일까지",
+    attachment: { name: "감사_자료.xlsx", size: "1.1MB", icon: "📊" }
+  }
+];
+
+let history = [
+  { name: "구매_계약서.hwp", time: "어제 15:20", status: "완료" },
+  { name: "인사_자료.xlsx", time: "2일 전 09:10", status: "완료" }
+];
+
+let currentMailId = null;
+
+/* ---------------- view switching ---------------- */
+function showView(id){
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function login(){
+  showView("view-inbox");
+  renderInbox();
+}
+
+function logout(){
+  showView("view-login");
+}
+
+function goInbox(){
+  showView("view-inbox");
+  renderInbox();
+}
+
+function goHistory(){
+  showView("view-history");
+  renderHistory();
+}
+
+/* ---------------- inbox ---------------- */
+function renderInbox(){
+  const list = document.getElementById("mailList");
+  list.innerHTML = mails.map(m => `
+    <div class="mail-row" onclick="openMail(${m.id})">
+      <div class="sender">${m.sender}</div>
+      <div class="content">
+        <div class="subject">${m.subject} ${m.attachment ? '<span class="clip">📎</span>' : ''}</div>
+        <div class="preview">${m.preview}</div>
+      </div>
+      <div class="date">${m.date}</div>
+    </div>
+  `).join("");
+}
+
+/* ---------------- mail detail ---------------- */
+function openMail(id){
+  currentMailId = id;
+  const m = mails.find(x => x.id === id);
+  const card = document.getElementById("detailCard");
+  card.innerHTML = `
+    <h2>${m.subject}</h2>
+    <div class="meta-line">
+      <span>발신: ${m.sender}</span>
+      <span>수신: 나</span>
+      <span>${m.date}</span>
+    </div>
+    <div class="mail-body">${m.body}</div>
+    ${m.attachment ? `
+      <div class="attachment-box">
+        <div class="file-info">
+          <div class="file-icon">${m.attachment.icon}</div>
+          <div>
+            <span class="file-name">${m.attachment.name}</span>
+            <span class="file-size">${m.attachment.size}</span>
+          </div>
+        </div>
+        <button class="btn" onclick="startTransfer(${m.id})">내부망으로 전송 ▶</button>
+      </div>
+    ` : ""}
+  `;
+  showView("view-detail");
+}
+
+/* ---------------- transfer timeline ---------------- */
+const stepDefs = [
+  { label: "전송 요청 생성" },
+  { label: "상사 승인" },
+  { label: "보안담당자 승인" },
+  { label: "보안검사(DLP) 통과" },
+  { label: "내부망 전송 완료" }
+];
+const stepGaps = [0, 1200, 1400, 1400, 1300]; // delay before each step completes, relative to previous
+let timelineTimers = [];
+
+function startTransfer(mailId){
+  const m = mails.find(x => x.id === mailId);
+  timelineTimers.forEach(t => clearTimeout(t));
+  timelineTimers = [];
+
+  document.getElementById("tlFileName").textContent = m.attachment.name;
+  document.getElementById("resultBanner").classList.remove("show");
+  document.getElementById("timelineActions").classList.remove("show");
+
+  const stepsEl = document.getElementById("steps");
+  stepsEl.innerHTML = stepDefs.map((s, i) => `
+    <li class="step" id="step-${i}">
+      <div class="step-dot">${i + 1}</div>
+      <div class="step-body">
+        <div class="step-label">${s.label}</div>
+        <div class="step-status" id="step-status-${i}">대기 중</div>
+      </div>
+    </li>
+  `).join("");
+
+  showView("view-timeline");
+
+  let elapsed = 0;
+  stepDefs.forEach((s, i) => {
+    elapsed += stepGaps[i];
+    const t1 = setTimeout(() => activateStep(i), elapsed);
+    timelineTimers.push(t1);
+  });
+  const totalDelay = elapsed + 700;
+  timelineTimers.push(setTimeout(() => finishTransfer(m), totalDelay));
+}
+
+function activateStep(i){
+  const el = document.getElementById(`step-${i}`);
+  el.classList.add("active");
+  document.getElementById(`step-status-${i}`).innerHTML = '<span class="spinner"></span>진행 중...';
+
+  setTimeout(() => {
+    el.classList.remove("active");
+    el.classList.add("done");
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    document.getElementById(`step-status-${i}`).textContent = `완료 · ${hh}:${mm}:${ss}`;
+  }, 700);
+}
+
+function finishTransfer(m){
+  document.getElementById("resultBanner").classList.add("show");
+  document.getElementById("timelineActions").classList.add("show");
+  history.unshift({ name: m.attachment.name, time: "방금 전", status: "완료" });
+}
+
+/* ---------------- history ---------------- */
+function renderHistory(){
+  const list = document.getElementById("historyList");
+  list.innerHTML = history.map(h => `
+    <div class="history-row">
+      <div class="file-icon">📎</div>
+      <div class="info">
+        <div class="name">${h.name}</div>
+        <div class="time">${h.time}</div>
+      </div>
+      <div class="badge">${h.status}</div>
+    </div>
+  `).join("");
+}
+</script>
+</body>
+</html>
