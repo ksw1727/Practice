@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>자료전송 프로토타입</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    background: #e9e9e6;
+    color: #333;
+    font-size: 13px;
+  }
+  .hidden { display: none !important; }
+  a { color: #1a66c9; text-decoration: none; }
+
+  /* ---------- Screen A: 웹메일 ---------- */
+  #screenA { max-width: 1200px; margin: 0 auto; background: #fff; min-height: 100vh; }
+  .topbar {
+    background: #2f6fd1; color: #fff; padding: 10px 20px;
+    display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: bold;
+  }
+  .topbar .right { font-size: 12px; font-weight: normal; display: flex; gap: 16px; align-items: center; }
+  .layout { display: flex; }
+
+  .sidebar { width: 200px; border-right: 1px solid #ddd; padding: 14px 0; flex-shrink: 0; background: #fff; }
+  .sidebar .tabs { display: flex; padding: 0 10px 12px; gap: 4px; }
+  .sidebar .tabs div { flex: 1; text-align: center; padding: 8px 0; font-size: 12px; border: 1px solid #ddd; background: #fafafa; cursor: pointer; }
+  .sidebar .tabs div.on { background: #eaf1fc; color: #2f6fd1; font-weight: bold; border-color: #2f6fd1; }
+  .sidebar ul { list-style: none; margin: 0; padding: 0; }
+  .sidebar li { padding: 7px 16px; cursor: pointer; color: #444; display: flex; justify-content: space-between; }
+  .sidebar li:hover { background: #f4f4f2; }
+  .sidebar li.active { background: #eaf1fc; color: #2f6fd1; font-weight: bold; }
+  .sidebar .count { color: #2f6fd1; font-size: 11px; }
+  .sidebar .sub li { padding-left: 30px; font-size: 12.5px; color: #666; }
+  .sidebar .grouphead { padding: 10px 16px 6px; font-size: 12px; color: #777; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .sidebar .divider { border-top: 1px solid #eee; margin: 8px 0; }
+  .sidebar .ext-group { padding: 10px 16px 4px; font-size: 11px; color: #999; }
+
+  .maincol { flex: 1; padding: 0; }
+  .listhead { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 2px solid #2f6fd1; }
+  .listhead .title { font-size: 15px; font-weight: bold; }
+  .listhead .title span { font-weight: normal; color: #888; font-size: 12px; margin-left: 6px; }
+  .listhead .search input { border: 1px solid #ccc; border-radius: 3px; padding: 6px 10px; font-size: 12px; width: 200px; }
+
+  .toolbar { padding: 8px 16px; border-bottom: 1px solid #ddd; display: flex; gap: 6px; align-items: center; }
+  .btn { border: 1px solid #ccc; background: #fafafa; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 12px; color: #444; }
+  .btn:hover { background: #f0f0f0; }
+  .btn.danger { color: #d0392a; }
+  .btn.primary { background: #2f6fd1; border-color: #2f6fd1; color: #fff; }
+  .btn.primary:hover { background: #255bb0; }
+  .btn.disabled { opacity: .4; cursor: not-allowed; }
+  .btn.small { padding: 4px 8px; font-size: 11px; }
+
+  .readpane-top { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px 0; }
+  .readpane-top .icons { color: #888; font-size: 12px; }
+  .readpane-top .date { color: #888; font-size: 12px; }
+
+  .mailmeta { padding: 8px 16px 14px; border-bottom: 1px solid #eee; font-size: 12.5px; color: #555; line-height: 2; display: flex; justify-content: space-between; }
+  .mailmeta .from b { color: #222; }
+  .mailmeta .links { color: #1a66c9; font-size: 11.5px; margin-left: 8px; }
+  .mailmeta .ip { color: #888; font-size: 11.5px; }
+
+  .attachbox { margin: 12px 16px; border: 1px solid #eee; border-radius: 4px; background: #fbfbfa; }
+  .attachbox-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid #eee; }
+  .attachbox-head .title { font-weight: bold; font-size: 12.5px; }
+  .attachbox-head .title .cnt { color: #d0392a; }
+  .attachbox-body { padding: 8px 12px; }
+  .filerow { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-bottom: 1px solid #f0f0f0; }
+  .filerow:last-child { border-bottom: none; }
+  .filerow input[type=checkbox] { width: 15px; height: 15px; accent-color: #2f6fd1; }
+  .filerow .ficon { width: 20px; height: 20px; background: #2f6fd1; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; border-radius: 3px; flex-shrink: 0; }
+  .filerow .fname { flex: 1; }
+  .filerow .fsize { color: #999; font-size: 11.5px; }
+  .filerow .ficonbtn { color: #999; cursor: pointer; padding: 0 4px; }
+
+  .selectedbar { display: none; margin: 8px 12px 10px; padding: 8px 12px; background: #eaf1fc; border-radius: 4px; align-items: center; justify-content: space-between; }
+  .selectedbar.show { display: flex; }
+  .selectedbar span { color: #2f6fd1; font-size: 12px; }
+
+  .body-preview { padding: 16px; color: #444; }
+  .imgpreview-head { padding: 0 16px; font-size: 12.5px; color: #555; margin-bottom: 10px; }
+  .imgpreview { display: flex; gap: 20px; padding: 0 16px 20px; }
+  .imgcard { text-align: center; }
+  .imgcard .thumb {
+    width: 150px; height: 150px; border-radius: 4px; border: 1px solid #eee;
+    background: linear-gradient(135deg,#fdeef2,#eaf1fc); display: flex; align-items: center; justify-content: center;
+    color: #aab; font-size: 11px;
+  }
+  .imgcard .fname { font-size: 11px; color: #888; margin-top: 6px; width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .maillist { border-top: 8px solid #f2f2f0; }
+  .maillist table { width: 100%; border-collapse: collapse; }
+  .maillist td { padding: 10px 16px; border-bottom: 1px solid #f0f0f0; font-size: 12.5px; color: #444; }
+  .maillist td.sender { width: 140px; }
+  .maillist .toplink { text-align: right; padding: 10px 16px; font-size: 12px; }
+
+  /* ---------- Modal overlay (B, E) ---------- */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 50;
+  }
+  .modal-box { background: #fff; width: 560px; max-width: 92vw; border-radius: 6px; overflow: hidden; border: 1px solid #ccc; }
+  .modal-titlebar { background: #2f6fd1; color: #fff; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+  .modal-titlebar .x { cursor: pointer; font-size: 16px; }
+  .modal-body { padding: 16px; }
+  .section-label { background: #eee; padding: 6px 10px; font-size: 12px; font-weight: bold; color: #555; margin: 14px 0 8px; border-radius: 3px; }
+  .filepill { display: flex; align-items: center; gap: 8px; background: #f6f6f4; border: 1px solid #e0e0e0; border-radius: 4px; padding: 8px 10px; margin-bottom: 6px; font-size: 12px; }
+  textarea, input[type=text] {
+    width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 8px; font-size: 12px; font-family: inherit; resize: vertical;
+  }
+  textarea { height: 70px; }
+  .req-mark { color: #d0392a; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid #eee; }
+
+  /* ---------- Screen D: 내 전송함 ---------- */
+  #screenD { max-width: 1200px; margin: 0 auto; background: #fff; min-height: 100vh; }
+  .pagehead { padding: 16px; border-bottom: 2px solid #2f6fd1; display: flex; justify-content: space-between; align-items: center; }
+  .pagehead h1 { font-size: 15px; margin: 0; }
+  table.reqtable { width: 100%; border-collapse: collapse; }
+  table.reqtable th { text-align: left; font-size: 12px; color: #777; padding: 10px 16px; border-bottom: 1px solid #ddd; background: #fafafa; }
+  table.reqtable td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+  table.reqtable tr.clickable { cursor: pointer; }
+  table.reqtable tr.clickable:hover { background: #f7f9fc; }
+  .status { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+  .status.pending { background: #fff3d6; color: #a06b00; }
+  .status.done { background: #e3f3e6; color: #1e7d32; }
+  .status.rejected { background: #fde6e5; color: #c62a1f; }
+  .status.new { animation: pulse 1.4s ease-in-out 2; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(47,111,209,.4); } 50% { box-shadow: 0 0 0 5px rgba(47,111,209,0); } }
+
+  .backlink { color: #2f6fd1; cursor: pointer; font-size: 12px; }
+  .note { padding: 16px; font-size: 12px; color: #999; }
+</style>
+</head>
+<body>
+
+<!-- ============ SCREEN A: 웹메일 ============ -->
+<div id="screenA" class="screen">
+  <div class="topbar">
+    <div>한국지역난방공사 WebMail System</div>
+    <div class="right">
+      <span>최근접속 : 2026-07-07 10:03 (192.0.2.1 / 대한민국)</span>
+      <span>김민수 님</span>
+      <span>로그아웃</span>
+      <span>환경설정</span>
+    </div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="tabs">
+        <div class="on">메일</div>
+        <div>주소록</div>
+      </div>
+      <ul>
+        <li>전체편지함</li>
+        <li class="active">받은메일함 <span class="count">3</span></li>
+        <li>내게쓴메일함</li>
+        <li>보낸메일함</li>
+        <li>임시보관함</li>
+      </ul>
+      <div class="grouphead">▾ 내 메일함</div>
+      <ul class="sub">
+        <li>감시장치 제작실</li>
+        <li>개인메일함</li>
+        <li>구조해석</li>
+        <li>지열추이</li>
+        <li>천공차단</li>
+      </ul>
+      <div class="divider"></div>
+      <ul>
+        <li>스팸메일함</li>
+        <li>휴지통 <span class="count">8</span></li>
+        <li>중요편지</li>
+        <li>첨부편지</li>
+        <li>주소록</li>
+        <li>대용량 파일 관리</li>
+      </ul>
+      <div class="divider"></div>
+      <div class="ext-group">확장 기능</div>
+      <ul>
+        <li onclick="goTo('screenD')">내 전송함</li>
+      </ul>
+    </div>
+    <div class="maincol">
+      <div class="listhead">
+        <div class="title">받은메일함 <span>3 / 722　안읽은 메일 삭제</span></div>
+        <div class="search"><input type="text" placeholder="메일검색"></div>
+      </div>
+      <div class="toolbar">
+        <button class="btn">답장</button>
+        <button class="btn">전체답장</button>
+        <button class="btn">전달</button>
+        <button class="btn danger">✕ 삭제</button>
+        <button class="btn">안읽음</button>
+        <button class="btn">스팸신고</button>
+        <button class="btn">편지이동</button>
+        <button class="btn">라벨</button>
+        <button class="btn">추가기능▾</button>
+      </div>
+
+      <div class="readpane-top">
+        <span class="icons">🖶 인쇄</span>
+        <span class="date">26-07-06 (월) 09:02</span>
+      </div>
+      <div class="mailmeta">
+        <div class="from">보낸사람 : <b>"김민수"</b> &lt;user1234@naver.com&gt;
+          <span class="links">주소록에 저장 | 수신차단하기</span><br>
+          받는사람 : user.kim@example.co.kr
+        </div>
+        <div class="ip">IP : 192.0.2.2</div>
+      </div>
+
+      <div class="attachbox">
+        <div class="attachbox-head">
+          <span class="title">첨부파일 <span class="cnt">2개</span> (2MB)</span>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn small">모두 저장</button>
+            <button class="btn primary small disabled" id="transferBtn" disabled onclick="openModalB()">업무망 자료전송</button>
+            <span style="font-size:11px; color:#999;">접기 ▴</span>
+          </div>
+        </div>
+        <div class="attachbox-body">
+          <div class="filerow">
+            <input type="checkbox" class="fchk" onchange="updateSelect()">
+            <span class="ficon">W</span>
+            <span class="fname">367DD992-77F1-4C41-BE94-6C8E110699A3.png</span>
+            <span class="fsize">1MB</span>
+            <span class="ficonbtn">⬇</span>
+            <span class="ficonbtn">✕</span>
+          </div>
+          <div class="filerow">
+            <input type="checkbox" class="fchk" onchange="updateSelect()">
+            <span class="ficon">W</span>
+            <span class="fname">CF7E5793-E1A3-4D7D-BAB6-E753427E2823.png</span>
+            <span class="fsize">1MB</span>
+            <span class="ficonbtn">⬇</span>
+            <span class="ficonbtn">✕</span>
+          </div>
+          <div class="selectedbar" id="selectedbar">
+            <span><span id="selcount">0</span>개 파일 선택됨</span>
+            <button class="btn primary small" onclick="openModalB()">선택 자료 업무망 전송하기 →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="body-preview">네이버 메일 앱에서 보냈습니다.</div>
+
+      <div class="imgpreview-head">이미지 미리보기 (2개의 이미지가 있습니다.)</div>
+      <div class="imgpreview">
+        <div class="imgcard">
+          <div class="thumb">미리보기 이미지</div>
+          <div class="fname">367DD992-77F1-4C41-BE94-6…</div>
+        </div>
+        <div class="imgcard">
+          <div class="thumb">미리보기 이미지</div>
+          <div class="fname">CF7E5793-E1A3-4D7D-BAB6-…</div>
+        </div>
+      </div>
+
+      <div class="maillist">
+        <table>
+          <tr>
+            <td class="sender">박지훈</td>
+            <td>일일 언론보도 현황(7.7)</td>
+            <td style="width:120px; color:#999;">26-07-07 08:31</td>
+          </tr>
+          <tr>
+            <td class="sender">김민수</td>
+            <td>인쇄1</td>
+            <td style="width:120px; color:#999;">26-07-06 09:01</td>
+          </tr>
+        </table>
+        <div class="toplink">맨위로 ▴</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL B: 전송 신청 ============ -->
+<div id="modalB" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-titlebar">
+      <span>업무망 자료전송 신청</span>
+      <span class="x" onclick="closeModalB()">✕</span>
+    </div>
+    <div class="modal-body">
+      <div class="section-label">선택한 파일</div>
+      <div id="modalFileList"></div>
+
+      <div class="section-label">수신자</div>
+      <input type="text" value="나에게 (김민수, 10000001)" disabled style="color:#888; background:#f6f6f4;">
+
+      <div class="section-label">전송사유 <span class="req-mark">*필수</span></div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:11px; color:#777;">반입 사유</label>
+        <textarea id="reason1" placeholder="예) 협력사 제공 자료 검토를 위해 업무망 반입"></textarea>
+      </div>
+      <div>
+        <label style="font-size:11px; color:#777;">자료 내용</label>
+        <textarea id="reason2" placeholder="예) 홍보용 이미지 파일 2건"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModalB()">취소</button>
+      <button class="btn primary" onclick="submitRequest()">보내기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SCREEN D: 내 전송함 ============ -->
+<div id="screenD" class="screen hidden">
+  <div class="topbar">
+    <div>한국지역난방공사 WebMail System</div>
+    <div class="right"><span onclick="goTo('screenA')" style="cursor:pointer;">← 메일함으로</span></div>
+  </div>
+  <div class="pagehead">
+    <h1>내 전송함</h1>
+    <span class="backlink" onclick="goTo('screenA')">메일함으로 돌아가기</span>
+  </div>
+  <table class="reqtable">
+    <thead>
+      <tr><th>파일명</th><th>상태</th><th>신청일시</th></tr>
+    </thead>
+    <tbody id="reqTableBody"></tbody>
+  </table>
+  <div class="note">반려된 건은 클릭하면 사유를 확인할 수 있습니다.</div>
+</div>
+
+<!-- ============ MODAL E: 반려 상세 ============ -->
+<div id="modalE" class="modal-overlay hidden">
+  <div class="modal-box" style="width:420px;">
+    <div class="modal-titlebar">
+      <span>반려 사유</span>
+      <span class="x" onclick="closeModalE()">✕</span>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 6px; font-weight:bold;" id="ejFile"></p>
+      <p style="color:#777; font-size:12px; margin:0 0 12px;" id="ejDate"></p>
+      <div style="background:#fde6e5; color:#c62a1f; border-radius:4px; padding:10px 12px; font-size:12px;" id="ejReason"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="closeModalE()">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var requests = [
+    { file: "예산안_초안.xlsx", status: "done", date: "2026-07-05 14:20" },
+    { file: "협력사_계약서.pdf", status: "rejected", date: "2026-07-04 09:12", reason: "반입 사유가 불명확합니다. 구체적인 사용 목적을 다시 작성해 재신청 바랍니다." },
+    { file: "회의자료_요약.docx", status: "pending", date: "2026-07-06 17:40" }
+  ];
+
+  function goTo(id) {
+    document.querySelectorAll('.screen').forEach(function(el){ el.classList.add('hidden'); });
+    document.getElementById(id).classList.remove('hidden');
+    if (id === 'screenD') renderTable();
+  }
+
+  function updateSelect() {
+    var n = document.querySelectorAll('.fchk:checked').length;
+    document.getElementById('selcount').textContent = n;
+    document.getElementById('selectedbar').classList.toggle('show', n > 0);
+    var btn = document.getElementById('transferBtn');
+    if (n > 0) { btn.classList.remove('disabled'); btn.disabled = false; }
+    else { btn.classList.add('disabled'); btn.disabled = true; }
+  }
+
+  function selectedFileNames() {
+    var names = [];
+    document.querySelectorAll('.filerow').forEach(function(row){
+      var chk = row.querySelector('.fchk');
+      if (chk && chk.checked) names.push(row.querySelector('.fname').textContent);
+    });
+    return names;
+  }
+
+  function openModalB() {
+    var names = selectedFileNames();
+    if (names.length === 0) return;
+    var list = document.getElementById('modalFileList');
+    list.innerHTML = '';
+    names.forEach(function(n){
+      var d = document.createElement('div');
+      d.className = 'filepill';
+      d.textContent = '📄 ' + n;
+      list.appendChild(d);
+    });
+    document.getElementById('modalB').classList.remove('hidden');
+  }
+
+  function closeModalB() {
+    document.getElementById('modalB').classList.add('hidden');
+  }
+
+  function submitRequest() {
+    var r1 = document.getElementById('reason1').value.trim();
+    var r2 = document.getElementById('reason2').value.trim();
+    if (!r1 || !r2) {
+      alert('반입 사유와 자료 내용은 필수 입력입니다.');
+      return;
+    }
+    var names = selectedFileNames();
+    names.forEach(function(n){
+      requests.unshift({ file: n, status: 'pending', date: '2026-07-07 10:05', isNew: true });
+    });
+    closeModalB();
+    goTo('screenD');
+  }
+
+  function statusLabel(s) {
+    if (s === 'pending') return '승인대기';
+    if (s === 'done') return '완료';
+    if (s === 'rejected') return '반려';
+    return s;
+  }
+
+  function renderTable() {
+    var body = document.getElementById('reqTableBody');
+    body.innerHTML = '';
+    requests.forEach(function(r, i){
+      var tr = document.createElement('tr');
+      var isRejected = r.status === 'rejected';
+      if (isRejected) { tr.className = 'clickable'; tr.onclick = function(){ openModalE(r); }; }
+      tr.innerHTML =
+        '<td>' + r.file + '</td>' +
+        '<td><span class="status ' + r.status + (r.isNew ? ' new' : '') + '">' + statusLabel(r.status) + '</span></td>' +
+        '<td>' + r.date + '</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  function openModalE(r) {
+    document.getElementById('ejFile').textContent = r.file;
+    document.getElementById('ejDate').textContent = '신청일시: ' + r.date;
+    document.getElementById('ejReason').textContent = r.reason || '사유 없음';
+    document.getElementById('modalE').classList.remove('hidden');
+  }
+
+  function closeModalE() {
+    document.getElementById('modalE').classList.add('hidden');
+  }
+</script>
+</body>
+</html>
